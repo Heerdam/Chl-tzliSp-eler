@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
 
 project(ChlötzliSpüeler)
 
@@ -21,7 +21,13 @@ endif()
 
 include(FetchContent)
 
-add_executable(cs "src/main.cpp")
+add_executable(cs 
+    "src/main.cpp"
+    "src/imgui_impl_raylib.cpp"
+)
+
+enable_language(CUDA)
+find_package(CUDA 9.0 REQUIRED)
 
 # ------------------ Eigen ------------------
 message(STATUS "Fetching Eigen3...")
@@ -39,33 +45,56 @@ if(NOT eigen3_POPULATED)
 endif()
 
 # ------------------ cuNSearch------------------
-#message(STATUS "Fetching cuNSearch...")
-#FetchContent_Declare(
-#	cun
-#	GIT_REPOSITORY        https://github.com/InteractiveComputerGraphics/cuNSearch.git
-#	GIT_SHALLOW           TRUE
-#)
-#FetchContent_MakeAvailable(cun)
-
-# ------------------ SPH ------------------
-message(STATUS "Fetching SPlisHSPlasH...")
+message(STATUS "Fetching cuNSearch...")
 FetchContent_Declare(
-	sph
-	GIT_REPOSITORY        https://github.com/InteractiveComputerGraphics/SPlisHSPlasH.git
-	GIT_TAG               2.12.0
-	GIT_SHALLOW           TRUE
+	cun
+	GIT_REPOSITORY        https://github.com/InteractiveComputerGraphics/cuNSearch.git
+    GIT_TAG               "aba3da18cb4f45cd05d729465d1725891ffc33da"
 )
+option(BUILD_DEMO "Build example of how to use this library." OFF)
+set(CUNSEARCH_USE_DOUBLE_PRECISION FALSE)
+FetchContent_MakeAvailable(cun)
+set_property(TARGET cuNSearch PROPERTY CUDA_ARCHITECTURES native)
+#add_compile_options(-DGPU_NEIGHBORHOOD_SEARCH)
 
-if(NOT sph_POPULATED)
-	set(USE_DOUBLE_PRECISION OFF CACHE BOOL "Use double precision" FORCE)
-	set(USE_AVX ON CACHE BOOL "Use AVX" FORCE)
-	set(USE_GPU_NEIGHBORHOOD_SEARCH ON CACHE BOOL "Use GPU neighborhood search" FORCE)
-	set(CUNSEARCH_USE_DOUBLE_PRECISION OFF CACHE BOOL "" FORCE)
-	set(SPH_LIBS_ONLY ON CACHE BOOL "" FORCE)
+# --------------- RAYLIB ---------------
+message(STATUS "Fetching Raylib...")
+FetchContent_Declare(
+	RAYLIB
+	GIT_REPOSITORY  https://github.com/raysan5/raylib.git
+	GIT_TAG         bf2ad9df5fdcaa385b2a7f66fd85632eeebbadaa
+)
+option(BUILD_EXAMPLES "Build example of how to use this library." OFF)
+option(BUILD_SHARED_LIBS "Build shared libs." OFF)
+set(GRAPHICS "GRAPHICS_API_OPENGL_43" FORCE)
+FetchContent_MakeAvailable(RAYLIB)
 
-	FetchContent_Populate(sph)
-	set(CMAKE_MODULE_PATH "${sph_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
-	add_subdirectory("${sph_SOURCE_DIR}" "${sph_BINARY_DIR}")
+# ------------------ IMGUI ------------------
+message(STATUS "Fetching imgui...")
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+)
+FetchContent_GetProperties(imgui)
+
+if(NOT imgui_POPULATED)
+    FetchContent_Populate(imgui)
+
+    set(IMGUI_FILES
+        "${imgui_SOURCE_DIR}/imgui_demo.cpp"
+        "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+        "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+        "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+        "${imgui_SOURCE_DIR}/imgui.cpp"        
+    )
+
+    add_library(imgui STATIC "${IMGUI_FILES}")
+
+    target_include_directories(cs PUBLIC "${imgui_SOURCE_DIR}")
 endif()
 
-target_link_libraries(cs SPlisHSPlasH Utilities)
+target_link_libraries(cs 
+    cuNSearch
+    raylib 
+    imgui
+)

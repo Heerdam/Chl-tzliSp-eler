@@ -1,33 +1,23 @@
 
-#define USE_AVX
-#define GPU_NEIGHBORHOOD_SEARCH
+#include "../include/dfsph.hpp"
 
-#include "SPlisHSPlasH/Common.h"
-#include <SPlisHSPlasH/Simulation.h>
+#include <imgui.h>
+#include <raylib.h>
+#include "../include/imgui_impl_raylib.h"
 
-#include <Utilities/Logger.h>
-#include <Utilities/Timing.h>
-#include <Utilities/Counting.h>
+int main(void)
+{
+    InitWindow(2000, 1500, "DFSPH 2D");
 
-INIT_LOGGING
-INIT_TIMING
-INIT_COUNTING
+    while (!WindowShouldClose())
+    {
+        BeginDrawing();
+            ClearBackground(RAYWHITE);
+            
+        EndDrawing();
+    }
 
-int main() {
+    CloseWindow();
 
-    SPH::Simulation sim;
-    SPH::Simulation::setCurrent(&sim);
-
-    sim.init(0.1, false);
-
-    sim.deferredInit();
-
-
-
-    
-
-
-
-
-    return EXIT_SUCCESS;
+    return 0;
 }

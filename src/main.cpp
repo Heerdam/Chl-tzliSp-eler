@@ -21,3 +21,16 @@ int main(void)
 
     return 0;
 }
+
+
+/*
+#include <bitset>
+#include <iostream>
+#include <cmath>
+
+
+int main() {
+
+    return 0;
+}
+*/

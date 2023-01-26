@@ -26,8 +26,8 @@ add_executable(cs
     "src/imgui_impl_raylib.cpp"
 )
 
-enable_language(CUDA)
-find_package(CUDA 9.0 REQUIRED)
+#enable_language(CUDA)
+#find_package(CUDA 9.0 REQUIRED)
 
 # ------------------ Eigen ------------------
 message(STATUS "Fetching Eigen3...")
@@ -45,16 +45,16 @@ if(NOT eigen3_POPULATED)
 endif()
 
 # ------------------ cuNSearch------------------
-message(STATUS "Fetching cuNSearch...")
-FetchContent_Declare(
-	cun
-	GIT_REPOSITORY        https://github.com/InteractiveComputerGraphics/cuNSearch.git
-    GIT_TAG               "aba3da18cb4f45cd05d729465d1725891ffc33da"
-)
-option(BUILD_DEMO "Build example of how to use this library." OFF)
-set(CUNSEARCH_USE_DOUBLE_PRECISION FALSE)
-FetchContent_MakeAvailable(cun)
-set_property(TARGET cuNSearch PROPERTY CUDA_ARCHITECTURES native)
+#message(STATUS "Fetching cuNSearch...")
+#FetchContent_Declare(
+#	cun
+#	GIT_REPOSITORY        https://github.com/InteractiveComputerGraphics/cuNSearch.git
+#    GIT_TAG               "aba3da18cb4f45cd05d729465d1725891ffc33da"
+#)
+#option(BUILD_DEMO "Build example of how to use this library." OFF)
+#set(CUNSEARCH_USE_DOUBLE_PRECISION FALSE)
+#FetchContent_MakeAvailable(cun)
+#set_property(TARGET cuNSearch PROPERTY CUDA_ARCHITECTURES native)
 #add_compile_options(-DGPU_NEIGHBORHOOD_SEARCH)
 
 # --------------- RAYLIB ---------------
@@ -93,8 +93,40 @@ if(NOT imgui_POPULATED)
     target_include_directories(cs PUBLIC "${imgui_SOURCE_DIR}")
 endif()
 
+# ------------------ LIBMORTON ------------------
+message(STATUS "Fetching libmorton...")
+FetchContent_Declare(
+    libmorton 
+    GIT_REPOSITORY      https://github.com/Forceflow/libmorton.git
+    GIT_TAG             v0.2.10
+    GIT_SHALLOW         TRUE
+)
+FetchContent_MakeAvailable(libmorton)
+
+# ------------------ ROBIN-MAP ------------------
+message(STATUS "Fetching robin map...")
+FetchContent_Declare(robin_map
+  GIT_REPOSITORY        https://github.com/Tessil/robin-map.git
+  GIT_TAG               v1.0.1
+  GIT_SHALLOW           TRUE
+)
+FetchContent_MakeAvailable(robin_map)
+
+# ------------------ KOMPUTE ------------------
+message(STATUS "Fetching kompute...")
+FetchContent_Declare(kompute
+  GIT_REPOSITORY        https://github.com/KomputeProject/kompute.git
+  GIT_TAG               v0.8.1
+  GIT_SHALLOW           TRUE
+)
+option(KOMPUTE_OPT_REPO_SUBMODULE_BUILD "Use the submodule repos instead of external package manager" ON)
+FetchContent_MakeAvailable(kompute)
+
 target_link_libraries(cs 
-    cuNSearch
+    #cuNSearch
     raylib 
     imgui
+    libmorton
+    tsl::robin_map
+    kompute
 )

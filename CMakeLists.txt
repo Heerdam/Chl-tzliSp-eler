@@ -26,6 +26,11 @@ add_executable(cs
     "src/imgui_impl_raylib.cpp"
 )
 
+add_executable(cs_test
+    "src/main_test.cpp"
+    "src/imgui_impl_raylib.cpp"
+)
+
 #enable_language(CUDA)
 #find_package(CUDA 9.0 REQUIRED)
 
@@ -42,6 +47,7 @@ FetchContent_GetProperties(eigen3)
 if(NOT eigen3_POPULATED)
 	FetchContent_Populate(eigen3)
 	target_include_directories(cs PUBLIC "${eigen3_SOURCE_DIR}")
+    target_include_directories(cs_test PUBLIC "${eigen3_SOURCE_DIR}")
 endif()
 
 # ------------------ cuNSearch------------------
@@ -122,6 +128,16 @@ FetchContent_Declare(kompute
 option(KOMPUTE_OPT_REPO_SUBMODULE_BUILD "Use the submodule repos instead of external package manager" ON)
 FetchContent_MakeAvailable(kompute)
 
+# ------------------ CATCH2 ------------------
+message(STATUS "Fetching Catch2...")
+FetchContent_Declare(
+		Catch2 
+		GIT_REPOSITORY      https://github.com/catchorg/Catch2.git
+		GIT_TAG             v2.13.6
+		GIT_SHALLOW	        TRUE
+)
+FetchContent_MakeAvailable(Catch2)
+
 target_link_libraries(cs 
     #cuNSearch
     raylib 
@@ -129,4 +145,11 @@ target_link_libraries(cs
     libmorton
     tsl::robin_map
     kompute
+)
+
+target_link_libraries(cs_test
+    libmorton
+    tsl::robin_map
+    kompute
+    Catch2
 )

@@ -365,8 +365,7 @@ namespace SPH {
             class _RO,
             class _DIFFERENTIAL,
             class _SPH,
-            class _GRID
-        >
+            class _GRID>
         struct SimulationProxy {
             using T = _T;
             constexpr static size_t DIM = _DIM;

@@ -28,7 +28,6 @@ add_executable(cs
 
 add_executable(cs_test
     "src/main_test.cpp"
-    "src/imgui_impl_raylib.cpp"
 )
 
 #enable_language(CUDA)

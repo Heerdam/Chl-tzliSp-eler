@@ -11,26 +11,35 @@
 
 namespace SPH {
 
+    template <typename T> 
+    constexpr int sign(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+
     using namespace Eigen;
 
-    template<class PROXY>
+    //template<class PROXY>
     class SparseGrid {
-        using T = typename PROXY::T;
-        constexpr static size_t DIM = PROXY::DIM;
+        //using T = typename PROXY::T;
+        //constexpr static size_t DIM = PROXY::DIM;
 
         EIGEN_STRONG_INLINE uint_fast64_t morton_index(int _x, int _y, int _z) {
-            const uint_fast64_t out = libmorton::morton3D_64_encode(uint_fast64_t(TMathUtil<T>::Abs(_x)), uint_fast64_t(TMathUtil<T>::Abs(_y)), uint_fast64_t(TMathUtil<T>::Abs(_z)));
-            return (out & 0x1FFFFFFFFFFFFFFF) | uint_fast64_t(std::signbit(_x)) << 63 | uint_fast64_t(std::signbit(_y)) << 62 | uint_fast64_t(std::signbit(_z)) << 61;
+            const uint_fast64_t out = libmorton::morton3D_64_encode(uint_fast64_t(std::abs(_x)), uint_fast64_t(std::abs(_y)), uint_fast64_t(std::abs(_z)));
+            return (out & 0x1FFFFFFFFFFFFFFF) | uint_fast64_t(sign(_x)) << 63 | uint_fast64_t(sign(_y)) << 62 | uint_fast64_t(sign(_z)) << 61;
         }
 
         EIGEN_STRONG_INLINE uint_fast64_t morton_index(int _x, int _y) {
-            const uint_fast64_t out = libmorton::morton2D_64_encode(uint_fast64_t(TMathUtil<T>::Abs(_x)), uint_fast64_t(TMathUtil<T>::Abs(_y)));
-            return (out & 0x1FFFFFFFFFFFFFFF) | uint_fast64_t(std::signbit(_x)) << 63 | uint_fast64_t(std::signbit(_y)) << 62;
+            const uint_fast64_t out = libmorton::morton2D_64_encode(uint_fast64_t(std::abs(_x)), uint_fast64_t(std::abs(_y)));
+            return (out & 0x1FFFFFFFFFFFFFFF) | uint_fast64_t(sign(_x)) << 63 | uint_fast64_t(sign(_y)) << 62;
         }
 
     public:
 
+        template<class PROXY>
         SparseGrid(const typename PROXY& _proxy) {
+
+            using T = typename PROXY::T;
+            constexpr static size_t DIM = PROXY::DIM;
 
             static_assert(DIM == 2 || DIM == 3, "only Dim {2, 3} supported");
 
@@ -116,14 +125,23 @@ namespace SPH {
 
         public:
 
+            template<class T, size_t DIM>
+            EIGEN_STRONG_INLINE static typename T W_ij(const Vector<T, DIM>& _x_i, const Vector<T, DIM>& _x_j, T _h) noexcept {
+                const T s = 0.; //PROXY::KERNEL::template sigma<PROXY>(_proxy);
+                const T q = _h * (_x_i - _x_j).norm();
+                if (T(0) <= q && q <= T(0.5)) return (s * (T(6) * (std::pow(q, 3) - std::pow(q, 2) + T(1))));
+                else if (T(0.5) < q && q <= T(1)) return (s * (T(2) * std::pow((T(1) - q), 3)));
+                else return T(0);
+            }//W_ij
+
             template<class PROXY>
             EIGEN_STRONG_INLINE static typename PROXY::T W_ij(const typename PROXY& _proxy, int _i, int _j) noexcept {
                 using T = typename PROXY::T;
                 constexpr static size_t DIM = PROXY::DIM;
-                const T s = PROXY::KERNEL::template sigma<PROXY>(_proxy.h);
-                const T q = _proxy.h1 * (_proxy.x[_i] - _proxy.x[_j]).norm();
-                if (T(0) <= q && q <= T(0.5)) return (s * (T(6) * (TMathUtil<T>::Pow(q, 3) - TMathUtil<T>::Pow(q, 2) + T(1))));
-                else if (T(0.5) < q && q <= T(1)) return (s * (T(2) * TMathUtil<T>::Pow((T(1) - q), 3)));
+                const T s = PROXY::KERNEL::template sigma<PROXY>(_proxy);
+                const T q = _proxy.h * (_proxy.x[_i] - _proxy.x[_j]).norm();
+                if (T(0) <= q && q <= T(0.5)) return (s * (T(6) * (std::pow(q, 3) - std::pow(q, 2) + T(1))));
+                else if (T(0.5) < q && q <= T(1)) return (s * (T(2) * std::pow((T(1) - q), 3)));
                 else return T(0);
             }//W_ij
 
@@ -131,12 +149,12 @@ namespace SPH {
             EIGEN_STRONG_INLINE static Vector<typename PROXY::T, PROXY::DIM> dW_ij(const typename PROXY& _proxy, int _i, int _j) noexcept {
                 using T = typename PROXY::T;
                 constexpr static size_t DIM = PROXY::DIM;
-                const T s = CubicSpline::template sigma<PROXY>(_proxy.h) * _proxy.h4i;
+                const T s = CubicSpline::template sigma<PROXY>(_proxy) * _proxy.h4i;
                 Vector<T, DIM> r = _proxy.x[_i] - _proxy.x[_j];
-                const T q = _proxy.h1 * r.norm();
+                const T q = _proxy.h * r.norm();
                 r.normalize();
                 if (T(0) <= q && q <= T(0.5)) return r * (s * - T(6) * q * (T(2) - T(3) * q));
-                else if (T(0.5) < q && q <= T(1)) return r * (s * - T(6) * TMathUtil<T>::Pow(T(1) - q, 2));
+                else if (T(0.5) < q && q <= T(1)) return r * (s * - T(6) * std::pow(T(1) - q, 2));
                 else return r * T(0);
             }//dW_ij
 
@@ -554,18 +572,15 @@ namespace SPH {
 
         };//SimulationStep
 
-        //template<typename, size_t>
-        //using Kerneld3 = typename Kernel::template CubicSpline<double, 3ull>;
 
-        //template<typename, size_t, template<typename, size_t> typename>
-        //using ROd3 = typename Operator::template MassDensitiyEstimator<double, 3ull, Kerneld3>;
-
-        //template<typename, size_t, class FUNC, template<typename, size_t> typename, template<typename, size_t, template<typename, size_t> typename> typename>
-        //using Differentiald3 = typename Operator::template Differential<double, 3ull, FUNC, Kerneld3, ROd3>;
     }
-    //template<typename,size_t, template<typename, size_t> typename,
-    //    template<typename, size_t, template<typename, size_t> typename> typename,
-    //    template<typename, size_t, class FUNC, template<typename, size_t> typename, template<typename, size_t, template<typename, size_t> typename> typename> typename>
-    //using DFSPH_Proxyd3 = typename Detail::template SimulationProxy<double, 3ull, Detail::Kerneld3, Detail::ROd3, Detail::Differentiald3>;
+
+    using DefaultProxy = Detail::SimulationProxy<double, 3, 
+        Kernel::CubicSpline, 
+        Operator::MassDensitiyEstimator,
+        Operator::Differential,
+        DFSPH,
+        SparseGrid>;
+
 
 }//SPH
